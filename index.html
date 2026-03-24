@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Voice Assistant</title>
+</head>
+<body>
+
+<h1>AI Voice Assistant</h1>
+
+<button onclick="startRecording()">Record</button>
+<audio controls></audio>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            console.log("Recording stopped"); // DEBUG
+
+            const blob = new Blob(audioChunks, { type: 'audio/wav' });
+
+            console.log("Blob size:", blob.size); // DEBUG
+
+            const formData = new FormData();
+
+            // ✅ IMPORTANT LINE
+            formData.append('audio', blob, 'recording.wav');
+
+            fetch('/process_audio', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => {
+                console.log("Response status:", res.status); // DEBUG
+                return res.blob();
+            })
+            .then(data => {
+                const audioURL = URL.createObjectURL(data);
+                document.querySelector("audio").src = audioURL;
+            })
+            .catch(err => {
+                console.error("Fetch error:", err);
+            });
+        };
+
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, 3000);
+    })
+    .catch(err => {
+        console.error("Mic error:", err);
+    });
+}
+</script>
+
+</body>
+</html>
