@@ -48,6 +48,39 @@ Users can:
 
 This feature improves usability, especially for mobile users.
 
+# AI Voice Assistant (Python)
+
+## 📌 Overview
+This project is a simple AI voice assistant built using Python. It can listen to voice commands and respond using speech.
+
+## 🎯 Features
+- Speech recognition
+- Text-to-speech response
+- Open websites like YouTube and Google
+- Tell current time
+- Exit command
+
+## 🛠️ Technologies Used
+- Python
+- SpeechRecognition
+- pyttsx3
+- pyaudio
+
+## ▶️ How It Works
+The assistant listens to user voice input, converts it into text using speech recognition, processes the command, and responds using text-to-speech.
+
+## ⚙️ Setup Instructions
+pip install pyttsx3 speechrecognition pyaudio
+
+python main.py
+
+## 🚀 Example Commands
+- "hello"
+- "time"
+- "youtube"
+- "google"
+- "exit"
+
 ---
 
 ## 🛠️ Tech Stack
