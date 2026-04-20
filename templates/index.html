@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alexa Voice Assistant</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #08081a;
+      color: #d0d8ff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      padding: 28px 0 12px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 2rem;
+      letter-spacing: 8px;
+      color: #60a5fa;
+      text-shadow: 0 0 20px rgba(96,165,250,0.5);
+    }
+    header p {
+      margin-top: 4px;
+      font-size: 0.78rem;
+      color: #444466;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    #messages {
+      flex: 1;
+      width: 100%;
+      max-width: 640px;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: #1e2040 transparent;
+    }
+
+    .message {
+      padding: 11px 16px;
+      border-radius: 16px;
+      max-width: 78%;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+    .user {
+      background: #1e3a6e;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      color: #bfd4ff;
+    }
+    .assistant {
+      background: #12122e;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border-left: 3px solid #3b82f6;
+      color: #c8d8ff;
+    }
+    .label {
+      font-size: 0.68rem;
+      letter-spacing: 1px;
+      margin-bottom: 3px;
+      opacity: 0.5;
+      text-transform: uppercase;
+    }
+
+    #controls {
+      padding: 24px 0 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    #mic-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: 2px solid #1d4ed8;
+      background: #0f172a;
+      cursor: pointer;
+      font-size: 2rem;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 18px rgba(59,130,246,0.25);
+      outline: none;
+    }
+    #mic-btn:hover {
+      background: #1e3a5f;
+      box-shadow: 0 0 28px rgba(59,130,246,0.45);
+    }
+    #mic-btn.listening {
+      background: #7f1d1d;
+      border-color: #ef4444;
+      animation: pulse 0.9s infinite;
+      box-shadow: 0 0 28px rgba(239,68,68,0.55);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    #mic-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    #status {
+      font-size: 0.82rem;
+      color: #555580;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>ALEXA</h1>
+    <p>Voice Assistant</p>
+  </header>
+
+  <div id="messages"></div>
+
+  <div id="controls">
+    <button id="mic-btn" title="Click to speak">🎤</button>
+    <span id="status">Click the mic and speak</span>
+  </div>
+
+  <script>
+    const micBtn  = document.getElementById('mic-btn');
+    const status  = document.getElementById('status');
+    const msgArea = document.getElementById('messages');
+
+    function addMessage(text, role) {
+      const wrap = document.createElement('div');
+      wrap.className = 'message ' + role;
+      const lbl = document.createElement('div');
+      lbl.className = 'label';
+      lbl.textContent = role === 'user' ? 'You' : 'Alexa';
+      const body = document.createElement('div');
+      body.textContent = text;
+      wrap.appendChild(lbl);
+      wrap.appendChild(body);
+      msgArea.appendChild(wrap);
+      msgArea.scrollTop = msgArea.scrollHeight;
+    }
+
+    function speak(text) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 1;
+      utter.pitch = 1;
+      window.speechSynthesis.speak(utter);
+    }
+
+    async function sendCommand(command) {
+      status.textContent = 'Processing...';
+      addMessage(command, 'user');
+      try {
+        const res = await fetch('/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command })
+        });
+        const data = await res.json();
+        addMessage(data.text, 'assistant');
+        speak(data.text);
+        if (data.action === 'play_youtube' && data.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch {
+        addMessage('Could not reach the server.', 'assistant');
+      }
+      status.textContent = 'Click the mic and speak';
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      status.textContent = 'Speech recognition not supported — use Chrome or Edge.';
+      micBtn.disabled = true;
+    } else {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        micBtn.classList.add('listening');
+        status.textContent = 'Listening...';
+      };
+      recognition.onend = () => {
+        micBtn.classList.remove('listening');
+      };
+      recognition.onresult = (e) => {
+        const command = e.results[0][0].transcript;
+        sendCommand(command);
+      };
+      recognition.onerror = (e) => {
+        micBtn.classList.remove('listening');
+        status.textContent = 'Error: ' + e.error;
+      };
+
+      micBtn.addEventListener('click', () => {
+        recognition.start();
+      });
+    }
+  </script>
+
+</body>
+</html>
