@@ -1,76 +1,52 @@
-# ai-voice-assistant
-My first AI Voice Assistant using Flask and JavaScript
+# AI Voice Assistant
 
-# AI Voice Assistant (Python)
+This project is a simple Alexa-style Python voice assistant built with:
 
-## 📌 Project Overview
-This project is a simple AI Voice Assistant built using Python. It can listen to user voice commands, process them, and respond using speech.
+- `pyttsx3` for text-to-speech
+- `speech_recognition` for voice input
+- `sounddevice` for microphone recording
+- `pywhatkit` for playing songs on YouTube
+- `wikipedia` for short person lookups
+- `pyjokes` for joke responses
 
-Along with building this assistant, I focused on improving usability and interaction, similar to modern applications that use voice-based controls.
+## What it does
 
----
+- If your speech contains `time`, it says the current time
+- If your speech contains `play`, it opens YouTube and plays the requested song
+- If your speech contains `who the heck is`, it reads a short Wikipedia summary
+- If your speech contains `joke`, it tells a joke
+- If your speech contains `date`, it says `sorry, I have a headache`
+- If your speech contains `are you single`, it gives a playful answer
+- If your speech contains `exit`, `quit`, `stop`, or `bye`, it closes the app
 
-## 🎯 Features
-- Voice recognition (Speech-to-Text)
-- Text-to-speech response
-- Open websites like YouTube and Google
-- Tell current time
-- Exit command
-- Simple and user-friendly interaction
+Example:
 
----
+```text
+Alexa play Lahore
+```
 
-## 🛠️ Technologies Used
-- Python
-- SpeechRecognition
-- pyttsx3
-- PyAudio
+This becomes:
 
----
+```python
+pywhatkit.playonyt("Lahore")
+```
 
-## ⚙️ How It Works
-The assistant listens to the user's voice using the SpeechRecognition library.  
-The input is converted into text and matched with predefined commands.  
-Based on the command, the assistant performs an action and responds using pyttsx3 for speech output.
+## Install
 
----
+```bash
+pip install pyttsx3 SpeechRecognition pywhatkit sounddevice wikipedia pyjokes
+```
 
-## 🎤 Example Commands
-- "hello"
-- "time"
-- "youtube"
-- "google"
-- "exit"
+## Run
 
----
+```bash
+python app.py
+```
 
-## 📱 Design Principles 
-- **Simplicity**: The interface and interaction are kept minimal and easy to use  
-- **Consistency**: Commands follow a consistent structure  
-- **Accessibility**: Voice interaction allows hands-free usage  
-- **User Experience**: Focused on smooth and natural interaction  
+## Notes
 
----
-
-## 📱 Responsiveness 
-Although this is a Python-based project, the design focuses on usability across different environments.  
-The voice-based interaction ensures accessibility without relying on screen size.
-
----
-
-## ⚖️ Trade-offs 
-- Focused on simplicity instead of adding complex AI models  
-- Used predefined commands instead of advanced NLP to maintain performance  
-- Avoided heavy frameworks to keep the project lightweight  
-
----
-
-## 🚧 Challenges Faced 
-- Handling voice recognition accuracy  
-- Managing background noise during input  
-- Ensuring smooth speech output  
-- Integrating multiple libraries together  
-
----
-
-
+- `SpeechRecognition` needs a working microphone
+- `recognize_google()` needs an internet connection
+- The app records about 5 seconds of audio each time it listens
+- `pywhatkit.playonyt()` opens the browser and plays the song on YouTube
+- Wikipedia lookups also need an internet connection
