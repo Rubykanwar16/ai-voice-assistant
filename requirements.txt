@@ -5,3 +5,6 @@ pywhatkit
 wikipedia
 pyjokes
 flask
+groq
+edge-tts
+python-dotenv

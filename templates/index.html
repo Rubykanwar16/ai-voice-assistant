@@ -2,15 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alexa Voice Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ruby — AI Voice Assistant</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+    :root {
+      --bg: #090912;
+      --surface: #10101f;
+      --surface2: #16162a;
+      --accent: #a855f7;
+      --accent-glow: rgba(168,85,247,0.35);
+      --red: #ef4444;
+      --red-glow: rgba(239,68,68,0.4);
+      --text: #d8c8ff;
+      --muted: #44445a;
+    }
+
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      background: #08081a;
-      color: #d0d8ff;
+      background: var(--bg);
+      color: var(--text);
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -18,69 +30,98 @@
     }
 
     header {
-      padding: 28px 0 12px;
-      text-align: center;
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 22px 20px 10px;
     }
-    header h1 {
-      font-size: 2rem;
-      letter-spacing: 8px;
-      color: #60a5fa;
-      text-shadow: 0 0 20px rgba(96,165,250,0.5);
+    .logo {
+      font-size: 1.2rem;
+      letter-spacing: 6px;
+      color: var(--accent);
+      font-weight: 700;
+      text-shadow: 0 0 18px var(--accent-glow);
     }
-    header p {
-      margin-top: 4px;
-      font-size: 0.78rem;
-      color: #444466;
+    .logo span {
+      color: var(--muted);
+      font-size: 0.68rem;
       letter-spacing: 2px;
-      text-transform: uppercase;
+      display: block;
+      margin-top: 3px;
+      font-weight: 400;
     }
+    #reset-btn {
+      background: none;
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+    #reset-btn:hover { border-color: var(--accent); color: var(--accent); }
 
     #messages {
       flex: 1;
       width: 100%;
-      max-width: 640px;
+      max-width: 680px;
       overflow-y: auto;
-      padding: 16px 20px;
+      padding: 12px 20px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       scrollbar-width: thin;
-      scrollbar-color: #1e2040 transparent;
+      scrollbar-color: var(--surface2) transparent;
     }
 
-    .message {
-      padding: 11px 16px;
-      border-radius: 16px;
-      max-width: 78%;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      animation: fadeIn 0.2s ease;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+    .bubble-wrap { display: flex; flex-direction: column; }
+    .bubble-wrap.user { align-items: flex-end; }
+    .bubble-wrap.assistant { align-items: flex-start; }
 
-    .user {
-      background: #1e3a6e;
-      align-self: flex-end;
-      border-bottom-right-radius: 4px;
-      color: #bfd4ff;
-    }
-    .assistant {
-      background: #12122e;
-      align-self: flex-start;
-      border-bottom-left-radius: 4px;
-      border-left: 3px solid #3b82f6;
-      color: #c8d8ff;
-    }
     .label {
-      font-size: 0.68rem;
-      letter-spacing: 1px;
-      margin-bottom: 3px;
-      opacity: 0.5;
+      font-size: 0.65rem;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 3px;
+      padding: 0 4px;
+    }
+    .bubble {
+      padding: 11px 15px;
+      border-radius: 16px;
+      max-width: 76%;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      animation: rise 0.2s ease;
+    }
+    @keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; } }
+    .user .bubble { background: #2a1060; border-bottom-right-radius: 4px; color: #d0b8ff; }
+    .assistant .bubble { background: var(--surface2); border-bottom-left-radius: 4px; border-left: 3px solid var(--accent); }
+    .error-bubble { background: #2a0f0f; border-left: 3px solid var(--red) !important; color: #ffaaaa; }
+
+    /* waveform */
+    .wave { display: flex; align-items: center; gap: 3px; height: 20px; }
+    .wave span {
+      display: inline-block; width: 3px;
+      background: var(--accent); border-radius: 2px;
+      animation: wave-bar 0.8s ease-in-out infinite;
+    }
+    .wave span:nth-child(1) { animation-delay:0s;   height:6px; }
+    .wave span:nth-child(2) { animation-delay:.1s;  height:14px; }
+    .wave span:nth-child(3) { animation-delay:.2s;  height:20px; }
+    .wave span:nth-child(4) { animation-delay:.3s;  height:14px; }
+    .wave span:nth-child(5) { animation-delay:.4s;  height:6px; }
+    @keyframes wave-bar {
+      0%,100% { transform:scaleY(0.4); opacity:0.5; }
+      50%      { transform:scaleY(1.0); opacity:1; }
     }
 
     #controls {
-      padding: 24px 0 36px;
+      padding: 20px 0 34px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -88,137 +129,215 @@
     }
 
     #mic-btn {
-      width: 76px;
-      height: 76px;
+      width: 76px; height: 76px;
       border-radius: 50%;
-      border: 2px solid #1d4ed8;
-      background: #0f172a;
+      border: 2px solid var(--accent);
+      background: var(--surface);
       cursor: pointer;
-      font-size: 2rem;
-      transition: background 0.2s, box-shadow 0.2s;
-      box-shadow: 0 0 18px rgba(59,130,246,0.25);
+      font-size: 1.9rem;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+      box-shadow: 0 0 22px var(--accent-glow);
       outline: none;
+      display: flex; align-items: center; justify-content: center;
     }
-    #mic-btn:hover {
-      background: #1e3a5f;
-      box-shadow: 0 0 28px rgba(59,130,246,0.45);
+    #mic-btn:hover:not(:disabled) {
+      background: #1e0a3a;
+      box-shadow: 0 0 36px var(--accent-glow);
+      transform: scale(1.05);
     }
-    #mic-btn.listening {
-      background: #7f1d1d;
-      border-color: #ef4444;
+    #mic-btn.recording {
+      border-color: var(--red);
+      background: #1f0f0f;
+      box-shadow: 0 0 32px var(--red-glow);
       animation: pulse 0.9s infinite;
-      box-shadow: 0 0 28px rgba(239,68,68,0.55);
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-    }
-    #mic-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
+    #mic-btn.processing { border-color: #facc15; cursor: not-allowed; opacity: 0.7; }
+    #mic-btn:disabled   { opacity: 0.3; cursor: not-allowed; }
+    @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.07);} }
 
     #status {
-      font-size: 0.82rem;
-      color: #555580;
-      letter-spacing: 0.5px;
+      font-size: 0.8rem; color: var(--muted);
+      letter-spacing: 0.5px; min-height: 1.2em; text-align: center;
     }
+    #status.active  { color: var(--red); }
+    #status.working { color: #facc15; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>ALEXA</h1>
-    <p>Voice Assistant</p>
-  </header>
+<header>
+  <div class="logo">RUBY <span>AI Voice Assistant</span></div>
+  <button id="reset-btn">CLEAR</button>
+</header>
 
-  <div id="messages"></div>
+<div id="messages"></div>
 
-  <div id="controls">
-    <button id="mic-btn" title="Click to speak">🎤</button>
-    <span id="status">Click the mic and speak</span>
-  </div>
+<div id="controls">
+  <button id="mic-btn">🎤</button>
+  <div id="status">Loading Ruby...</div>
+</div>
 
-  <script>
-    const micBtn  = document.getElementById('mic-btn');
-    const status  = document.getElementById('status');
-    const msgArea = document.getElementById('messages');
+<script>
+  const micBtn   = document.getElementById('mic-btn');
+  const statusEl = document.getElementById('status');
+  const msgArea  = document.getElementById('messages');
+  const resetBtn = document.getElementById('reset-btn');
 
-    function addMessage(text, role) {
-      const wrap = document.createElement('div');
-      wrap.className = 'message ' + role;
-      const lbl = document.createElement('div');
-      lbl.className = 'label';
-      lbl.textContent = role === 'user' ? 'You' : 'Alexa';
-      const body = document.createElement('div');
-      body.textContent = text;
-      wrap.appendChild(lbl);
-      wrap.appendChild(body);
-      msgArea.appendChild(wrap);
-      msgArea.scrollTop = msgArea.scrollHeight;
-    }
+  let mediaRecorder, audioChunks = [], isRecording = false;
 
-    function speak(text) {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 1;
-      utter.pitch = 1;
-      window.speechSynthesis.speak(utter);
-    }
+  function beep(frequency, duration, volume = 0.3) {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = frequency;
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration / 1000);
+  }
 
-    async function sendCommand(command) {
-      status.textContent = 'Processing...';
-      addMessage(command, 'user');
-      try {
-        const res = await fetch('/command', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command })
-        });
-        const data = await res.json();
-        addMessage(data.text, 'assistant');
-        speak(data.text);
-        if (data.action === 'play_youtube' && data.url) {
-          window.open(data.url, '_blank');
-        }
-      } catch {
-        addMessage('Could not reach the server.', 'assistant');
+  function setStatus(text, cls = '') {
+    statusEl.textContent = text;
+    statusEl.className = cls;
+  }
+
+  function addBubble(text, role, isError = false) {
+    const wrap = document.createElement('div');
+    wrap.className = `bubble-wrap ${role}`;
+    const lbl = document.createElement('div');
+    lbl.className = 'label';
+    lbl.textContent = role === 'user' ? 'You' : 'Ruby';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble' + (isError ? ' error-bubble' : '');
+    bubble.textContent = text;
+    wrap.appendChild(lbl);
+    wrap.appendChild(bubble);
+    msgArea.appendChild(wrap);
+    msgArea.scrollTop = msgArea.scrollHeight;
+  }
+
+  function addWave() {
+    const wrap = document.createElement('div');
+    wrap.id = 'wave-indicator';
+    wrap.className = 'bubble-wrap user';
+    const lbl = document.createElement('div');
+    lbl.className = 'label';
+    lbl.textContent = 'You';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = '<div class="wave"><span></span><span></span><span></span><span></span><span></span></div>';
+    wrap.appendChild(lbl);
+    wrap.appendChild(bubble);
+    msgArea.appendChild(wrap);
+    msgArea.scrollTop = msgArea.scrollHeight;
+  }
+
+  function removeWave() {
+    const w = document.getElementById('wave-indicator');
+    if (w) w.remove();
+  }
+
+  function playAudio(b64) {
+    const binary = atob(b64);
+    const bytes  = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'audio/mp3' });
+    const audio = new Audio(URL.createObjectURL(blob));
+    audio.play().catch(() => {});
+  }
+
+  // Play greeting on load
+  window.addEventListener('load', async () => {
+    try {
+      const res  = await fetch('/greet');
+      const data = await res.json();
+      if (!data.error) {
+        addBubble(data.text, 'assistant');
+        playAudio(data.audio);
       }
-      status.textContent = 'Click the mic and speak';
+    } catch {}
+    setStatus('Click to start recording');
+  });
+
+  async function sendAudio(blob) {
+    micBtn.classList.add('processing');
+    micBtn.disabled = true;
+    setStatus('Transcribing...', 'working');
+
+    const form = new FormData();
+    form.append('audio', blob, 'recording.webm');
+
+    try {
+      const res  = await fetch('/voice', { method: 'POST', body: form });
+      const data = await res.json();
+      removeWave();
+      if (data.error) {
+        addBubble(data.error, 'assistant', true);
+      } else {
+        addBubble(data.transcript, 'user');
+        addBubble(data.response, 'assistant');
+        playAudio(data.audio);
+      }
+    } catch {
+      removeWave();
+      addBubble('Could not reach the server.', 'assistant', true);
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    micBtn.classList.remove('processing');
+    micBtn.disabled = false;
+    setStatus('Click to start recording');
+  }
 
-    if (!SpeechRecognition) {
-      status.textContent = 'Speech recognition not supported — use Chrome or Edge.';
-      micBtn.disabled = true;
-    } else {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
+  async function startRecording() {
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { setStatus('Microphone access denied.'); return; }
 
-      recognition.onstart = () => {
-        micBtn.classList.add('listening');
-        status.textContent = 'Listening...';
-      };
-      recognition.onend = () => {
-        micBtn.classList.remove('listening');
-      };
-      recognition.onresult = (e) => {
-        const command = e.results[0][0].transcript;
-        sendCommand(command);
-      };
-      recognition.onerror = (e) => {
-        micBtn.classList.remove('listening');
-        status.textContent = 'Error: ' + e.error;
-      };
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      await sendAudio(new Blob(audioChunks, { type: 'audio/webm' }));
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    micBtn.classList.add('recording');
+    micBtn.textContent = '⏹';
+    setStatus('Recording — click to stop', 'active');
+    beep(880, 150);   // listening start
+    addWave();
+  }
 
-      micBtn.addEventListener('click', () => {
-        recognition.start();
-      });
+  function stopRecording() {
+    if (mediaRecorder && isRecording) {
+      beep(440, 120);   // listening stop
+      mediaRecorder.stop();
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      micBtn.textContent = '🎤';
+      setStatus('Processing...', 'working');
     }
-  </script>
+  }
+
+  micBtn.addEventListener('click', () => {
+    if (isRecording) stopRecording();
+    else startRecording();
+  });
+
+  resetBtn.addEventListener('click', async () => {
+    await fetch('/reset', { method: 'POST' });
+    msgArea.innerHTML = '';
+    try {
+      const res  = await fetch('/greet');
+      const data = await res.json();
+      if (!data.error) { addBubble(data.text, 'assistant'); playAudio(data.audio); }
+    } catch {}
+  });
+</script>
 
 </body>
 </html>
