@@ -1,4 +1,4 @@
-# Ruby Voice Assistant - Render.com Deployment Guide
+# AI Voice Assistant - Render.com Deployment Guide
 
 ## Prerequisites
 1. GitHub account with your repository pushed
@@ -25,7 +25,7 @@ git push origin main
 2. Connect your GitHub repository
 3. Select the `ai-voice-assistant` repository
 4. Fill in the following:
-   - **Name:** ruby-voice-assistant (or your choice)
+   - **Name:** ai-voice-assistant
    - **Environment:** Python 3
    - **Region:** Choose closest to you
    - **Branch:** main
@@ -44,7 +44,7 @@ Add these variables:
 - Click "Create Web Service"
 - Render will automatically build and deploy
 - Wait for "Your service is live" message
-- Your app URL will be shown (e.g., `https://ruby-voice-assistant.onrender.com`)
+- Your app URL will be shown (e.g., `https://ai-voice-assistant.onrender.com`)
 
 ### 6. Test Your Deployment
 1. Open the URL in Chrome or Edge browser

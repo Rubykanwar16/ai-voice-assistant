@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ruby-voice-assistant
+    name: ai-voice-assistant
     env: python
     region: oregon
     plan: free
