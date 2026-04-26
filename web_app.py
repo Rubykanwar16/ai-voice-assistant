@@ -46,12 +46,6 @@ def add_cors_headers(response):
     return response
 
 
-@app.before_request
-def before_request():
-    """Check if API key is set"""
-    if not client and request.path not in ['/health', '/']:
-        return jsonify({"error": "GROQ_API_KEY not configured"}), 503
-
 conversation_history = []
 
 def _clean(text: str) -> str:
