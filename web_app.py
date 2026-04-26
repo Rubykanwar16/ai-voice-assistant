@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 
 # Initialize Flask app first
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__)
 
 # Load environment variables
 load_dotenv()
