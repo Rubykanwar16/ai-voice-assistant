@@ -13,12 +13,14 @@ from tools import TOOLS, execute_tool
 
 load_dotenv()
 
-api_key = os.environ.get("GROQ_API_KEY")
-if not api_key:
-    raise ValueError("GROQ_API_KEY environment variable is not set. Please create a .env file with your API key.")
-
 app = Flask(__name__)
-client = Groq(api_key=api_key)
+
+# Initialize Groq client safely
+api_key = os.environ.get("GROQ_API_KEY")
+if api_key:
+    client = Groq(api_key=api_key)
+else:
+    client = None
 
 # Enable CORS for requests from port 5500
 @app.after_request
@@ -145,6 +147,8 @@ def index():
 
 @app.route("/greet", methods=["GET", "OPTIONS"])
 def greet():
+    if not client:
+        return jsonify({"error": "API key not configured. Set GROQ_API_KEY environment variable."}), 500
     try:
         audio_bytes = run_async(generate_speech(GREETING, VOICE_HI))
         audio_b64 = base64.b64encode(audio_bytes).decode()
@@ -155,6 +159,9 @@ def greet():
 
 @app.route("/voice", methods=["POST", "OPTIONS"])
 def voice():
+    if not client:
+        return jsonify({"error": "API key not configured. Set GROQ_API_KEY environment variable."}), 500
+    
     audio_file = request.files.get("audio")
     if not audio_file:
         return jsonify({"error": "No audio received."}), 400
@@ -201,9 +208,10 @@ def reset():
 def run_web():
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        print("\n  ERROR: GROQ_API_KEY not set. Create a .env file with your key.\n")
+        print("\n  ERROR: GROQ_API_KEY not set in environment variables!\n")
+        print("  For Render.com: Go to Settings → Environment and add GROQ_API_KEY\n")
         return
     port = int(os.environ.get("PORT", 5000))
-    print(f"\n  Ruby is running at http://localhost:{port}")
+    print(f"\n  AI Voice Assistant is running at http://localhost:{port}")
     print("  Open in Chrome or Edge\n")
     app.run(debug=False, host="0.0.0.0", port=port)
