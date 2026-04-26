@@ -3,24 +3,39 @@ import base64
 import datetime
 import os
 import re
+import sys
 
 import edge_tts
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
-from groq import Groq
 
-from tools import TOOLS, execute_tool
+# Initialize Flask app first
+app = Flask(__name__, template_folder='templates')
 
+# Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
-
 # Initialize Groq client safely
-api_key = os.environ.get("GROQ_API_KEY")
-if api_key:
-    client = Groq(api_key=api_key)
-else:
+try:
+    from groq import Groq
+    api_key = os.environ.get("GROQ_API_KEY")
+    if api_key:
+        client = Groq(api_key=api_key)
+    else:
+        client = None
+        print("WARNING: GROQ_API_KEY not set - AI features will not work")
+except Exception as e:
+    print(f"ERROR initializing Groq: {e}")
     client = None
+
+# Import tools
+try:
+    from tools import TOOLS, execute_tool
+except Exception as e:
+    print(f"ERROR importing tools: {e}")
+    TOOLS = []
+    def execute_tool(name, args):
+        return "Tool execution failed"
 
 # Enable CORS for requests from port 5500
 @app.after_request
@@ -29,6 +44,13 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return response
+
+
+@app.before_request
+def before_request():
+    """Check if API key is set"""
+    if not client and request.path not in ['/health', '/']:
+        return jsonify({"error": "GROQ_API_KEY not configured"}), 503
 
 conversation_history = []
 
@@ -143,6 +165,15 @@ def ask_llm(user_input):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    """Health check endpoint for Render monitoring"""
+    if client:
+        return jsonify({"status": "healthy", "api_key": "configured"}), 200
+    else:
+        return jsonify({"status": "degraded", "api_key": "missing"}), 200
 
 
 @app.route("/greet", methods=["GET", "OPTIONS"])
