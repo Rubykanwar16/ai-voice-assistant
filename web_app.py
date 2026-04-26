@@ -13,8 +13,20 @@ from tools import TOOLS, execute_tool
 
 load_dotenv()
 
+api_key = os.environ.get("GROQ_API_KEY")
+if not api_key:
+    raise ValueError("GROQ_API_KEY environment variable is not set. Please create a .env file with your API key.")
+
 app = Flask(__name__)
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+client = Groq(api_key=api_key)
+
+# Enable CORS for requests from port 5500
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 conversation_history = []
 
@@ -49,12 +61,31 @@ def run_async(coro):
 
 
 async def generate_speech(text, voice=VOICE_EN):
-    communicate = edge_tts.Communicate(text, voice)
-    chunks = []
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            chunks.append(chunk["data"])
-    return b"".join(chunks)
+    """
+    Generate speech audio from text using edge-tts.
+    Falls back to alternative voice if main voice fails.
+    """
+    try:
+        communicate = edge_tts.Communicate(text, voice)
+        chunks = []
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                chunks.append(chunk["data"])
+        return b"".join(chunks)
+    except Exception as e:
+        # Retry with alternative voice
+        try:
+            alt_voice = VOICE_HI if voice == VOICE_EN else VOICE_EN
+            print(f"TTS failed with {voice}, retrying with {alt_voice}")
+            communicate = edge_tts.Communicate(text, alt_voice)
+            chunks = []
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    chunks.append(chunk["data"])
+            return b"".join(chunks)
+        except Exception as e2:
+            # If TTS fails completely, raise with informative message
+            raise Exception(f"Speech synthesis failed: {str(e)}. Please try again.") from e2
 
 
 def ask_llm(user_input):
@@ -112,7 +143,7 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/greet", methods=["GET"])
+@app.route("/greet", methods=["GET", "OPTIONS"])
 def greet():
     try:
         audio_bytes = run_async(generate_speech(GREETING, VOICE_HI))
@@ -122,7 +153,7 @@ def greet():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/voice", methods=["POST"])
+@app.route("/voice", methods=["POST", "OPTIONS"])
 def voice():
     audio_file = request.files.get("audio")
     if not audio_file:
@@ -161,7 +192,7 @@ def voice():
     })
 
 
-@app.route("/reset", methods=["POST"])
+@app.route("/reset", methods=["POST", "OPTIONS"])
 def reset():
     conversation_history.clear()
     return jsonify({"status": "ok"})
@@ -172,6 +203,7 @@ def run_web():
     if not api_key:
         print("\n  ERROR: GROQ_API_KEY not set. Create a .env file with your key.\n")
         return
-    print("\n  Ruby is running at http://localhost:5000")
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\n  Ruby is running at http://localhost:{port}")
     print("  Open in Chrome or Edge\n")
-    app.run(debug=False, port=5000)
+    app.run(debug=False, host="0.0.0.0", port=port)

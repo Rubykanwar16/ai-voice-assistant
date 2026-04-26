@@ -52,17 +52,22 @@ source venv/Scripts/activate
 pip install -r requirements.txt
 ```
 
+**Note on PyAudio (Windows):** If installation fails, download a pre-built wheel from [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio) and install with:
+```bash
+pip install pyaudio-*.whl
+```
+
 ### 4. Add your API keys
 
 ```bash
-cp .env.example .env
+copy .env.example .env
 ```
 
-Open `.env` and fill in both keys:
+Open `.env` and fill in your API keys:
 
 ```
-GROQ_API_KEY=your_groq_api_key_here
-WEATHER_API_KEY=your_openweathermap_api_key_here
+GROQ_API_KEY=your_actual_groq_api_key
+WEATHER_API_KEY=your_actual_openweather_key
 ```
 
 ---
@@ -73,14 +78,34 @@ WEATHER_API_KEY=your_openweathermap_api_key_here
 python main.py
 ```
 
+You'll see a menu:
 ```
 How do you want to use the assistant?
   1) CLI based
   2) Web based
 ```
 
-- **Web mode** — opens at http://localhost:5000 — use Chrome or Edge
-- **CLI mode** — uses your microphone directly via PyAudio
+### Web Mode (Recommended)
+
+```
+Select: 2
+Ruby is running at http://localhost:5000
+```
+
+- Open **Chrome** or **Edge** at `http://localhost:5000`
+- Click the microphone button to start recording
+- Ruby will transcribe, process, and respond
+- CORS is enabled for cross-origin requests
+
+### CLI Mode
+
+```
+Select: 1
+```
+
+- Uses your microphone directly
+- Type or speak to interact
+- Say "exit", "quit", "stop", or "bye" to quit
 
 ---
 
@@ -91,6 +116,19 @@ How do you want to use the assistant?
 - Tell jokes, chat, explain topics
 - Maintains full conversation history across turns
 - Greets in Hindi on startup
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `GROQ_API_KEY not set` | Create `.env` file with your API key from [console.groq.com](https://console.groq.com) |
+| `ModuleNotFoundError: No module named 'X'` | Run `pip install -r requirements.txt` |
+| Microphone not working | Check system audio settings, grant microphone permission |
+| PyAudio installation fails on Windows | Download pre-built wheel from [lfd.uci.edu](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio) |
+| Web page won't load | Ensure Flask is running on port 5000 (not already in use) |
+| Audio playback not working in web | Use Chrome or Edge; Safari doesn't support web audio well |
 
 ---
 

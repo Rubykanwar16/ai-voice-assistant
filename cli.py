@@ -11,7 +11,14 @@ from tools import TOOLS, execute_tool
 
 load_dotenv()
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+api_key = os.environ.get("GROQ_API_KEY")
+if not api_key:
+    print("\n  ERROR: GROQ_API_KEY not set.")
+    print("  Please create a .env file with your Groq API key.")
+    print("  See .env.example for reference.\n")
+    exit(1)
+
+client = Groq(api_key=api_key)
 
 listener = sr.Recognizer()
 engine = pyttsx3.init()
@@ -64,13 +71,6 @@ def take_command():
     except Exception as e:
         print(f'Error: {e}')
     return command
-
-
-import re
-
-def _clean(text: str) -> str:
-    # Strip raw tool-call syntax the model sometimes leaks into response text
-    return re.sub(r"<function=\w+>.*?</function>", "", text, flags=re.DOTALL).strip()
 
 
 def ask_llm(user_input):

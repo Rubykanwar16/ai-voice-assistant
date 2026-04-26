@@ -252,7 +252,7 @@
   // Play greeting on load
   window.addEventListener('load', async () => {
     try {
-      const res  = await fetch('/greet');
+      const res  = await fetch("http://localhost:5000/greet");
       const data = await res.json();
       if (!data.error) {
         addBubble(data.text, 'assistant');
@@ -271,7 +271,7 @@
     form.append('audio', blob, 'recording.webm');
 
     try {
-      const res  = await fetch('/voice', { method: 'POST', body: form });
+      const res  = await fetch('http://localhost:5000/voice', { method: 'POST', body: form });
       const data = await res.json();
       removeWave();
       if (data.error) {
@@ -329,10 +329,10 @@
   });
 
   resetBtn.addEventListener('click', async () => {
-    await fetch('/reset', { method: 'POST' });
+    await fetch('http://localhost:5000/reset', { method: 'POST' });
     msgArea.innerHTML = '';
     try {
-      const res  = await fetch('/greet');
+      const res  = await fetch("http://localhost:5000/greet");
       const data = await res.json();
       if (!data.error) { addBubble(data.text, 'assistant'); playAudio(data.audio); }
     } catch {}

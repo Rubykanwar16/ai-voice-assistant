@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ruby-voice-assistant
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT web_app:app
+    envVars:
+      - key: GROQ_API_KEY
+        scope: run
+        sync: false
+      - key: WEATHER_API_KEY
+        scope: run
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
