@@ -264,15 +264,26 @@ def server_error(e):
 
 def run_web():
     """Run Flask app"""
+    print("\n" + "="*50)
+    print("AI Voice Assistant - Starting")
+    print("="*50)
+    
     init_clients()
     
     if not client:
-        print("\n⚠ WARNING: GROQ_API_KEY not set!")
-        print("Set it in Render Settings → Environment Variables\n")
+        print("⚠ GROQ_API_KEY not set - API calls will fail")
+    else:
+        print("✓ Groq client initialized successfully")
     
     port = int(os.environ.get("PORT", 5000))
-    print(f"\n✓ AI Voice Assistant starting on port {port}")
-    app.run(debug=False, host="0.0.0.0", port=port)
+    host = "0.0.0.0"
+    
+    print(f"✓ Starting on {host}:{port}")
+    print(f"✓ Flask debug mode: OFF")
+    print(f"✓ Routes: {[str(rule) for rule in app.url_map.iter_rules() if 'static' not in str(rule)]}")
+    print("="*50 + "\n")
+    
+    app.run(debug=False, host=host, port=port, threaded=True)
 
 
 if __name__ == "__main__":
