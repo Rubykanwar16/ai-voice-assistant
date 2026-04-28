@@ -11,3 +11,4 @@ Pywhatkit==5.4
 wikipedia==1.4.0
 pyjokes==0.6.0
 pydub==0.25.0
+aifc
