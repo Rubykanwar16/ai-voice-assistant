@@ -74,6 +74,9 @@ def execute_tool(name, args):
     except Exception as e:
         return f"Tool error: {str(e)}"
 
+# Ensure clients are initialized immediately upon import
+init_clients()
+
 # Constants
 GREETING = "Namaskar, Mera Name Ruby hai, mai aapki kya sahayta kar sakti hoon"
 VOICE_EN = "en-US-JennyNeural"
