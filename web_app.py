@@ -61,7 +61,7 @@ def init_clients():
 def get_client():
     try:
         from groq import Groq
-        api_key = os.environ.get("GROQ_API_KEY")
+        api_key = os.environ.get("GROQ_API_KEY", "").strip()
         return Groq(api_key=api_key, max_retries=3) if api_key else None
     except Exception:
         return None
@@ -267,8 +267,9 @@ def voice():
     # Transcribe using requests to bypass httpx multipart issues on Vercel
     try:
         import requests
+        api_key = os.environ.get("GROQ_API_KEY", "").strip()
         headers = {
-            "Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"
+            "Authorization": f"Bearer {api_key}"
         }
         files = {
             "file": ("recording.webm", audio_file.read(), "audio/webm")
