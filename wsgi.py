@@ -1,5 +1,7 @@
 import os
-from web_app import app
+from web_app import app, init_clients
+
+init_clients()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
