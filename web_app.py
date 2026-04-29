@@ -43,7 +43,7 @@ def init_clients():
         from groq import Groq
         api_key = os.environ.get("GROQ_API_KEY")
         if api_key:
-            client = Groq(api_key=api_key)
+            client = Groq(api_key=api_key, max_retries=3)
             print("✓ Groq client initialized successfully")
             return True
         else:
@@ -57,6 +57,14 @@ def init_clients():
     except Exception as e:
         print(f"✗ ERROR initializing Groq: {e}")
         return False
+
+def get_client():
+    try:
+        from groq import Groq
+        api_key = os.environ.get("GROQ_API_KEY")
+        return Groq(api_key=api_key, max_retries=3) if api_key else None
+    except Exception:
+        return None
 
 def get_tools():
     """Get tools for LLM"""
@@ -134,7 +142,8 @@ def get_system_prompt():
 
 def ask_llm(user_input):
     """Get LLM response"""
-    if not client:
+    fresh_client = get_client()
+    if not fresh_client:
         return "API key not configured"
     
     conversation_history.append({"role": "user", "content": user_input})
@@ -151,7 +160,7 @@ def ask_llm(user_input):
         kwargs["tools"] = tools_list
         kwargs["tool_choice"] = "auto"
 
-    resp = client.chat.completions.create(**kwargs)
+    resp = fresh_client.chat.completions.create(**kwargs)
     
     msg = resp.choices[0].message
     
@@ -173,7 +182,7 @@ def ask_llm(user_input):
             "content": tool_result
         })
         
-        resp2 = client.chat.completions.create(
+        resp2 = fresh_client.chat.completions.create(
             model=LLM_MODEL,
             messages=[{"role": "system", "content": get_system_prompt()}] + conversation_history,
             max_tokens=200,
@@ -221,7 +230,8 @@ def health():
     """Health check"""
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"}), 200
-    status = "healthy" if client else "degraded"
+    fresh_client = get_client()
+    status = "healthy" if fresh_client else "degraded"
     return jsonify({"status": status}), 200
 
 
@@ -246,7 +256,8 @@ def voice():
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"}), 200
     
-    if not client:
+    fresh_client = get_client()
+    if not fresh_client:
         return jsonify({"error": "API not configured"}), 503
     
     audio_file = request.files.get("audio")
@@ -255,7 +266,7 @@ def voice():
     
     # Transcribe
     try:
-        transcription = client.audio.transcriptions.create(
+        transcription = fresh_client.audio.transcriptions.create(
             model=WHISPER_MODEL,
             file=("recording.webm", audio_file.read(), "audio/webm"),
         )
