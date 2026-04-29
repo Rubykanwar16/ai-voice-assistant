@@ -92,15 +92,17 @@ def ask_llm(user_input):
     messages = [{"role": "system", "content": get_system_prompt()}] + conversation_history
 
 
-    # First call — LLM decides whether to use a tool
-    resp1 = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-        tools=TOOLS,
-        tool_choice="auto",
-        max_tokens=200,
-        temperature=0.7,
-    )
+    kwargs = {
+        "model": LLM_MODEL,
+        "messages": messages,
+        "max_tokens": 200,
+        "temperature": 0.7,
+    }
+    if TOOLS:
+        kwargs["tools"] = TOOLS
+        kwargs["tool_choice"] = "auto"
+
+    resp1 = client.chat.completions.create(**kwargs)
     msg = resp1.choices[0].message
 
     if msg.tool_calls:
@@ -110,7 +112,7 @@ def ask_llm(user_input):
 
         conversation_history.append({
             "role": "assistant",
-            "content": msg.content,
+            "content": msg.content or "",
             "tool_calls": [{
                 "id": tc.id,
                 "type": "function",
@@ -132,7 +134,7 @@ def ask_llm(user_input):
         )
         response = _clean(resp2.choices[0].message.content)
     else:
-        response = _clean(msg.content)
+        response = _clean(msg.content or "")
 
     conversation_history.append({"role": "assistant", "content": response})
     return response
