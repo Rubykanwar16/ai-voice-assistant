@@ -264,13 +264,29 @@ def voice():
     if not audio_file:
         return jsonify({"error": "No audio received"}), 400
     
-    # Transcribe
+    # Transcribe using requests to bypass httpx multipart issues on Vercel
     try:
-        transcription = fresh_client.audio.transcriptions.create(
-            model=WHISPER_MODEL,
-            file=("recording.webm", audio_file.read(), "audio/webm"),
+        import requests
+        headers = {
+            "Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"
+        }
+        files = {
+            "file": ("recording.webm", audio_file.read(), "audio/webm")
+        }
+        data = {
+            "model": WHISPER_MODEL
+        }
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers=headers,
+            files=files,
+            data=data,
+            timeout=20
         )
-        transcript = transcription.text.strip()
+        if resp.status_code != 200:
+            return jsonify({"error": f"Transcription API error {resp.status_code}: {resp.text}"}), 500
+            
+        transcript = resp.json().get("text", "").strip()
     except Exception as e:
         return jsonify({"error": f"Transcription failed: {str(e)}"}), 500
     
