@@ -1,6 +1,6 @@
 """
-AI Voice Assistant - Production Flask App for Render.com
-Clean, error-handled implementation for cloud deployment
+AI Voice Assistant - Flask Web Application
+Production-ready implementation with error handling and CORS support
 """
 import asyncio
 import base64
@@ -11,12 +11,26 @@ import re
 from flask import Flask, jsonify, render_template, request
 from dotenv import load_dotenv
 
+# Try to import Flask-CORS
+try:
+    from flask_cors import CORS
+    HAS_CORS = True
+except ImportError:
+    HAS_CORS = False
+
 # Load environment variables
 load_dotenv()
 
-# Create Flask app
-app = Flask(__name__)
+# Get absolute path for templates folder
+TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+
+# Create Flask app with absolute path to templates
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.config['JSON_SORT_KEYS'] = False
+
+# Enable CORS
+if HAS_CORS:
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Initialize clients
 client = None
@@ -30,11 +44,19 @@ def init_clients():
         api_key = os.environ.get("GROQ_API_KEY")
         if api_key:
             client = Groq(api_key=api_key)
-            print("✓ Groq client initialized")
+            print("✓ Groq client initialized successfully")
+            return True
         else:
-            print("⚠ GROQ_API_KEY not set")
+            print("⚠ WARNING: GROQ_API_KEY not set in .env file")
+            print("  LLM functionality will be disabled")
+            return False
+    except ImportError:
+        print("✗ ERROR: Groq library not installed")
+        print("  Run: pip install -r requirements.txt")
+        return False
     except Exception as e:
-        print(f"✗ Error initializing Groq: {e}")
+        print(f"✗ ERROR initializing Groq: {e}")
+        return False
 
 def get_tools():
     """Get tools for LLM"""
@@ -115,14 +137,18 @@ def ask_llm(user_input):
     conversation_history.append({"role": "user", "content": user_input})
     messages = [{"role": "system", "content": get_system_prompt()}] + conversation_history
     
-    resp = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-        tools=get_tools(),
-        tool_choice="auto",
-        max_tokens=200,
-        temperature=0.7,
-    )
+    tools_list = get_tools()
+    kwargs = {
+        "model": LLM_MODEL,
+        "messages": messages,
+        "max_tokens": 200,
+        "temperature": 0.7,
+    }
+    if tools_list:
+        kwargs["tools"] = tools_list
+        kwargs["tool_choice"] = "auto"
+
+    resp = client.chat.completions.create(**kwargs)
     
     msg = resp.choices[0].message
     
@@ -131,7 +157,7 @@ def ask_llm(user_input):
         tool_result = execute_tool(tc.function.name, tc.function.arguments)
         conversation_history.append({
             "role": "assistant",
-            "content": msg.content,
+            "content": msg.content or "",
             "tool_calls": [{
                 "id": tc.id,
                 "type": "function",
@@ -152,13 +178,22 @@ def ask_llm(user_input):
         )
         response = _clean(resp2.choices[0].message.content)
     else:
-        response = _clean(msg.content)
+        response = _clean(msg.content or "")
     
     conversation_history.append({"role": "assistant", "content": response})
     return response
 
 
-# CORS Headers
+# CORS Headers - Enhanced
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify({"status": "ok"})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response, 200
+
 @app.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -171,12 +206,18 @@ def add_cors_headers(response):
 @app.route("/", methods=["GET"])
 def index():
     """Serve main page"""
-    return render_template("index.html")
+    try:
+        return render_template("index.html")
+    except Exception as e:
+        print(f"Index error: {e}")
+        return jsonify({"error": f"Could not load index: {str(e)}"}), 500
 
 
-@app.route("/health", methods=["GET"])
+@app.route("/health", methods=["GET", "OPTIONS"])
 def health():
     """Health check"""
+    if request.method == "OPTIONS":
+        return jsonify({"status": "ok"}), 200
     status = "healthy" if client else "degraded"
     return jsonify({"status": status}), 200
 
@@ -190,9 +231,10 @@ def greet():
     try:
         audio_bytes = run_async(generate_speech(GREETING, VOICE_HI))
         audio_b64 = base64.b64encode(audio_bytes).decode()
-        return jsonify({"text": GREETING, "audio": audio_b64})
+        return jsonify({"text": GREETING, "audio": audio_b64}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Greet error: {e}")
+        return jsonify({"error": f"Greeting failed: {str(e)}", "text": GREETING, "audio": ""}), 500
 
 
 @app.route("/voice", methods=["POST", "OPTIONS"])
@@ -254,36 +296,72 @@ def reset():
 
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify({"error": "Not found"}), 404
+    return jsonify({"error": "Endpoint not found"}), 404
 
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": f"Method {request.method} not allowed on this endpoint"}), 405
 
 @app.errorhandler(500)
 def server_error(e):
-    return jsonify({"error": "Server error"}), 500
+    print(f"Server error: {e}")
+    return jsonify({"error": "Internal server error"}), 500
 
 
 def run_web():
     """Run Flask app"""
-    print("\n" + "="*50)
-    print("AI Voice Assistant - Starting")
-    print("="*50)
+    print("\n" + "="*70)
+    print("  AI VOICE ASSISTANT - STARTING FLASK SERVER")
+    print("="*70)
     
-    init_clients()
+    # Check if templates folder exists
+    if not os.path.isdir(TEMPLATE_DIR):
+        print(f"\n✗ ERROR: Templates folder not found at: {TEMPLATE_DIR}")
+        print("  Make sure index.html exists in the templates/ folder\n")
+        return
     
-    if not client:
-        print("⚠ GROQ_API_KEY not set - API calls will fail")
-    else:
-        print("✓ Groq client initialized successfully")
+    print(f"\n✅ Templates folder found: {TEMPLATE_DIR}")
     
+    # Initialize Groq client
+    print("\n🔧 Initializing clients...")
+    client_ok = init_clients()
+    
+    if not client_ok:
+        print("⚠️  API key missing - voice features will not work")
+    
+    # Get configuration
     port = int(os.environ.get("PORT", 5000))
     host = "0.0.0.0"
     
-    print(f"✓ Starting on {host}:{port}")
-    print(f"✓ Flask debug mode: OFF")
-    print(f"✓ Routes: {[str(rule) for rule in app.url_map.iter_rules() if 'static' not in str(rule)]}")
-    print("="*50 + "\n")
+    # Display configuration
+    print(f"\n🔌 Server Configuration:")
+    print(f"   - Host: {host}")
+    print(f"   - Port: {port}")
+    print(f"   - Access URL: http://localhost:{port}")
+    print(f"   - Debug Mode: OFF (Production mode)")
     
-    app.run(debug=False, host=host, port=port, threaded=True)
+    # List available routes
+    routes = [str(rule) for rule in app.url_map.iter_rules() if 'static' not in str(rule)]
+    print(f"\n📍 Available Routes:")
+    for route in sorted(routes):
+        print(f"   {route}")
+    
+    print("\n" + "="*70)
+    print("  🚀 Server is starting - Press Ctrl+C to stop")
+    print("="*70 + "\n")
+    
+    try:
+        app.run(debug=False, host=host, port=port, threaded=True)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            print(f"\n❌ ERROR: Port {port} is already in use")
+            print(f"   Try: PORT=5001 python main.py")
+        else:
+            print(f"\n❌ ERROR: {e}")
+        return
+    except Exception as e:
+        print(f"\n❌ ERROR: {e}")
+        return
 
 
 if __name__ == "__main__":

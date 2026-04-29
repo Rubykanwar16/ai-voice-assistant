@@ -185,18 +185,19 @@
 
   let mediaRecorder, audioChunks = [], isRecording = false;
 
+  let audioCtx;
   function beep(frequency, duration, volume = 0.3) {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(audioCtx.destination);
     osc.type = 'sine';
     osc.frequency.value = frequency;
-    gain.gain.setValueAtTime(volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + duration / 1000);
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration / 1000);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + duration / 1000);
   }
 
   function setStatus(text, cls = '') {
@@ -252,7 +253,7 @@
   // Play greeting on load
   window.addEventListener('load', async () => {
     try {
-      const res  = await fetch("http://localhost:5000/greet");
+      const res  = await fetch("/greet");
       const data = await res.json();
       if (!data.error) {
         addBubble(data.text, 'assistant');
@@ -271,7 +272,7 @@
     form.append('audio', blob, 'recording.webm');
 
     try {
-      const res  = await fetch('http://localhost:5000/voice', { method: 'POST', body: form });
+      const res  = await fetch('/voice', { method: 'POST', body: form });
       const data = await res.json();
       removeWave();
       if (data.error) {
@@ -329,10 +330,10 @@
   });
 
   resetBtn.addEventListener('click', async () => {
-    await fetch('http://localhost:5000/reset', { method: 'POST' });
+    await fetch('/reset', { method: 'POST' });
     msgArea.innerHTML = '';
     try {
-      const res  = await fetch("http://localhost:5000/greet");
+      const res  = await fetch("/greet");
       const data = await res.json();
       if (!data.error) { addBubble(data.text, 'assistant'); playAudio(data.audio); }
     } catch {}

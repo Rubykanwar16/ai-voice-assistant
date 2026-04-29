@@ -1,7 +1,7 @@
-
+"""
 AI Voice Assistant - Flask Web Application
 Production-ready implementation with error handling and CORS support
-
+"""
 import asyncio
 import base64
 import datetime

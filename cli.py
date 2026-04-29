@@ -1,11 +1,17 @@
 import os
 import re
 import datetime
-import winsound
 import speech_recognition as sr
 import pyttsx3
 from groq import Groq
 from dotenv import load_dotenv
+
+# Handle Windows-specific module
+try:
+    import winsound
+    HAS_WINSOUND = True
+except ImportError:
+    HAS_WINSOUND = False
 
 from tools import TOOLS, execute_tool
 
@@ -26,6 +32,14 @@ voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[1].id if len(voices) > 1 else voices[0].id)
 
 conversation_history = []
+
+def beep(frequency, duration):
+    """Cross-platform beep function"""
+    if HAS_WINSOUND:
+        winsound.Beep(frequency, duration)
+    else:
+        # Fallback: print message instead of beeping
+        pass
 
 def get_system_prompt():
     now = datetime.datetime.now().strftime("%A, %d %B %Y, %I:%M %p")
@@ -55,16 +69,16 @@ def take_command():
     try:
         with sr.Microphone() as source:
             listener.adjust_for_ambient_noise(source, duration=0.5)
-            winsound.Beep(880, 150)   # listening start
+            beep(880, 150)   # listening start
             print('Listening...')
             voice = listener.listen(source, timeout=5, phrase_time_limit=8)
-            winsound.Beep(440, 120)   # listening stop
+            beep(440, 120)   # listening stop
             command = listener.recognize_google(voice)
             print(f'You said: {command}')
     except sr.WaitTimeoutError:
         pass
     except sr.UnknownValueError:
-        winsound.Beep(300, 200)       # error / not understood
+        beep(300, 200)       # error / not understood
         pass
     except sr.RequestError:
         talk('Speech service is unavailable.')

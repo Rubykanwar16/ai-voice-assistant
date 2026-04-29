@@ -6,9 +6,8 @@ python-dotenv==1.0.0
 requests==2.31.0
 gunicorn==21.2.0
 SpeechRecognition==3.10.0
-Pyttsx3==2.90
-Pywhatkit==5.4
+pyttsx3==2.90
+pywhatkit==5.4
 wikipedia==1.4.0
 pyjokes==0.6.0
 pydub==0.25.0
-

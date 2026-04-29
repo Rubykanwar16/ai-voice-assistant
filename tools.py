@@ -67,6 +67,9 @@ TOOL_MAP = {
 
 
 def execute_tool(name: str, arguments: str) -> str:
-    args = json.loads(arguments)
+    try:
+        args = json.loads(arguments)
+    except Exception:
+        args = {}
     fn = TOOL_MAP.get(name)
     return fn(args) if fn else "Unknown tool called."
