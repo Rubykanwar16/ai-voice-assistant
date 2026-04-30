@@ -3,7 +3,8 @@ import os
 
 import requests
 
-WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
+GEO_URL = "https://geocoding-api.open-meteo.com/v1/search"
+WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 
 # Tool definitions passed to Groq
 TOOLS = [
@@ -27,27 +28,68 @@ TOOLS = [
 ]
 
 
+def get_weather_description(code: int) -> str:
+    weather_codes = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Fog",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Moderate drizzle",
+        55: "Dense drizzle",
+        61: "Slight rain",
+        63: "Moderate rain",
+        65: "Heavy rain",
+        71: "Slight snow",
+        73: "Moderate snow",
+        75: "Heavy snow",
+        80: "Slight rain showers",
+        81: "Moderate rain showers",
+        82: "Violent rain showers",
+        95: "Thunderstorm",
+        96: "Thunderstorm with slight hail",
+        99: "Thunderstorm with heavy hail"
+    }
+    return weather_codes.get(code, "Unknown weather")
+
 def get_weather(city: str) -> str:
-    api_key = os.environ.get("WEATHER_API_KEY")
-    if not api_key:
-        return "Weather feature is not configured. Please add WEATHER_API_KEY to your .env file."
     try:
-        resp = requests.get(WEATHER_URL, params={
-            "q": city,
-            "appid": api_key,
-            "units": "metric"
+        # Step 1: Geocoding
+        geo_resp = requests.get(GEO_URL, params={
+            "name": city,
+            "count": 1
         }, timeout=5)
-        data = resp.json()
-        if resp.status_code != 200:
-            error_msg = data.get("message", "Unknown error")
-            return f"Could not find weather data for '{city}'. Error: {error_msg}"
-        temp        = data["main"]["temp"]
-        feels_like  = data["main"]["feels_like"]
-        humidity    = data["main"]["humidity"]
-        description = data["weather"][0]["description"].capitalize()
-        wind_speed  = data["wind"]["speed"]
-        city_name   = data["name"]
-        country     = data["sys"]["country"]
+        geo_data = geo_resp.json()
+        
+        if not geo_data.get("results"):
+            return f"Could not find coordinates for city '{city}'."
+            
+        location = geo_data["results"][0]
+        lat = location["latitude"]
+        lon = location["longitude"]
+        city_name = location["name"]
+        country = location.get("country", "")
+        
+        # Step 2: Weather Forecast
+        weather_resp = requests.get(WEATHER_URL, params={
+            "latitude": lat,
+            "longitude": lon,
+            "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
+            "wind_speed_unit": "ms"
+        }, timeout=5)
+        weather_data = weather_resp.json()
+        
+        current = weather_data.get("current", {})
+        temp = current.get("temperature_2m", "N/A")
+        feels_like = current.get("apparent_temperature", "N/A")
+        humidity = current.get("relative_humidity_2m", "N/A")
+        wind_speed = current.get("wind_speed_10m", "N/A")
+        code = current.get("weather_code", -1)
+        
+        description = get_weather_description(code)
+        
         return (
             f"{city_name}, {country}: {description}. "
             f"Temperature {temp}°C (feels like {feels_like}°C). "

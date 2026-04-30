@@ -44,18 +44,18 @@ def init_clients():
         api_key = os.environ.get("GROQ_API_KEY")
         if api_key:
             client = Groq(api_key=api_key, max_retries=3)
-            print("✓ Groq client initialized successfully")
+            print("[OK] Groq client initialized successfully")
             return True
         else:
-            print("⚠ WARNING: GROQ_API_KEY not set in .env file")
+            print("[WARNING] GROQ_API_KEY not set in .env file")
             print("  LLM functionality will be disabled")
             return False
     except ImportError:
-        print("✗ ERROR: Groq library not installed")
+        print("[ERROR] Groq library not installed")
         print("  Run: pip install -r requirements.txt")
         return False
     except Exception as e:
-        print(f"✗ ERROR initializing Groq: {e}")
+        print(f"[ERROR] initializing Groq: {e}")
         return False
 
 def get_client():
@@ -182,12 +182,16 @@ def ask_llm(user_input):
             "content": tool_result
         })
         
-        resp2 = fresh_client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[{"role": "system", "content": get_system_prompt()}] + conversation_history,
-            max_tokens=200,
-            temperature=0.7,
-        )
+        kwargs2 = {
+            "model": LLM_MODEL,
+            "messages": [{"role": "system", "content": get_system_prompt()}] + conversation_history,
+            "max_tokens": 200,
+            "temperature": 0.7,
+        }
+        if tools_list:
+            kwargs2["tools"] = tools_list
+            
+        resp2 = fresh_client.chat.completions.create(**kwargs2)
         response = _clean(resp2.choices[0].message.content)
     else:
         response = _clean(msg.content or "")
@@ -347,25 +351,25 @@ def run_web():
     
     # Check if templates folder exists
     if not os.path.isdir(TEMPLATE_DIR):
-        print(f"\n✗ ERROR: Templates folder not found at: {TEMPLATE_DIR}")
+        print(f"\n[ERROR] Templates folder not found at: {TEMPLATE_DIR}")
         print("  Make sure index.html exists in the templates/ folder\n")
         return
     
-    print(f"\n✅ Templates folder found: {TEMPLATE_DIR}")
+    print(f"\n[OK] Templates folder found: {TEMPLATE_DIR}")
     
     # Initialize Groq client
-    print("\n🔧 Initializing clients...")
+    print("\n[*] Initializing clients...")
     client_ok = init_clients()
     
     if not client_ok:
-        print("⚠️  API key missing - voice features will not work")
+        print("[!] API key missing - voice features will not work")
     
     # Get configuration
     port = int(os.environ.get("PORT", 5000))
     host = "0.0.0.0"
     
     # Display configuration
-    print(f"\n🔌 Server Configuration:")
+    print(f"\n[*] Server Configuration:")
     print(f"   - Host: {host}")
     print(f"   - Port: {port}")
     print(f"   - Access URL: http://localhost:{port}")
@@ -373,25 +377,25 @@ def run_web():
     
     # List available routes
     routes = [str(rule) for rule in app.url_map.iter_rules() if 'static' not in str(rule)]
-    print(f"\n📍 Available Routes:")
+    print(f"\n[*] Available Routes:")
     for route in sorted(routes):
         print(f"   {route}")
     
     print("\n" + "="*70)
-    print("  🚀 Server is starting - Press Ctrl+C to stop")
+    print("  [*] Server is starting - Press Ctrl+C to stop")
     print("="*70 + "\n")
     
     try:
         app.run(debug=False, host=host, port=port, threaded=True)
     except OSError as e:
         if "Address already in use" in str(e):
-            print(f"\n❌ ERROR: Port {port} is already in use")
+            print(f"\n[ERROR] Port {port} is already in use")
             print(f"   Try: PORT=5001 python main.py")
         else:
-            print(f"\n❌ ERROR: {e}")
+            print(f"\n[ERROR]: {e}")
         return
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\n[ERROR]: {e}")
         return
 
 
